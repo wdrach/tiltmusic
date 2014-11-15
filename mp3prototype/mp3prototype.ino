@@ -153,12 +153,16 @@ void setup() {
   if(!sd.begin(9, SPI_HALF_SPEED)) sd.initErrorHalt();
   if(!sd.chdir("/")) sd.errorHalt("sd.chdir");
 
-  //initiate the mp3player
+  //initialize the mp3player
   MP3player.begin();
   MP3player.setVUmeter(1);
 
   //normal volume
   MP3player.setVolume(40,40);
+
+  //initialize the neopixels
+  strip.begin();
+  strip.show();
 
   //begin I2C communications and start the gyro
   Wire.begin();
