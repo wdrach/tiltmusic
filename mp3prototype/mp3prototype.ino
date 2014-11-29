@@ -1,33 +1,10 @@
-/* Prototype for the tilt-based MP3 player.
+/* Prototype for the tilt-based synth
    The functions for this are not filled in
    so it won't do much atm.
 */
 
 /* General library information:
   All of the libraries are in the git repo, just copy them over to your Arduino folder
-*/
-
-/* MP3 Shield information
-   Open pins:
-   D0(UART), D1(UART), D5, D10
-   A0-5
-
-   Used pins:
-   D2- DREQ (data request)
-   D6- CS (chip select)
-   D7- DCS (data chip select)
-   D8- Mp3 reset
-   D9- SDCS (SD chip select)
-
-   Libraries:
-   SPI (unused for now, but available)
-   SDFat
-   SFEMP3Shield (the sparkfun library)
-
-   Resources:
-   Library https://github.com/madsci1016/Sparkfun-MP3-Player-Shield-Arduino-Library
-   Ref http://mpflaga.github.io/Sparkfun-MP3-Player-Shield-Arduino-Library/class_s_f_e_m_p3_shield.html
-   Also remember that you can do some hardcore bit banging if needed, example on Moodle
 */
 
 /* Neopixel Info
@@ -89,37 +66,17 @@
   Example https://github.com/sparkfun/ITG-3200_Breakout/tree/master/Firmware/ITG3200_Example
 */
 
-// libraries, using the sparkfun library for the MP3
-//SD libs
-#include <SPI.h>
-#include <SdFat.h>
-#include <SdFatUtil.h>
-
-//Mp3 lib
-#include <SFEMP3Shield.h>
-
-//Neopixel lib
+//libraries
 #include <Adafruit_NeoPixel.h>
-
-//Gyro lib
 #include <Wire.h>
 
 //initialize Neopixels
 #define NEOPIN 5
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 
-//object for sd card and mp3 chip
-SdFat sd;
-SFEMP3Shield MP3player;
-volatile int track = 0;
-
 //stuff for the button
 #define BUTPIN 10
 int buttonState = 0;
-
-//ints for the audio input, between 0 and 31
-byte leftChannel = 0;
-byte rightChannel = 0;
 
 //buffer for the millis of the last gyro reading
 unsigned long bufferTime = 0;
@@ -127,9 +84,14 @@ unsigned long currTime = 0;
 unsigned long totTime = 0;
 
 //total angle
-long xAng;
-long yAng;
-long zAng;
+long xAng = 0;
+long yAng = 0;
+long zAng = 0;
+
+//angles in 0-1024
+long xAna = 500;
+long yAna = 500;
+long zAna = 500;
 
 //Start gyro defines
 const char SMPLRT_DIV= 0x15;
@@ -148,18 +110,13 @@ const char DLPF_FS_SEL_1 = (1<<4);
 const char itgAddress = 0x69;
 //end gyro defines
 
+//start synth stuff
+
+//end synth stuff
+
 void setup() {
-  //initiate the sd card
-  if(!sd.begin(9, SPI_HALF_SPEED)) sd.initErrorHalt();
-  if(!sd.chdir("/")) sd.errorHalt("sd.chdir");
 
-  //initialize the mp3player
-  MP3player.begin();
-  MP3player.setVUmeter(1);
-
-  //normal volume
-  MP3player.setVolume(40,40);
-
+  Serial.begin(9600);
   //initialize the neopixels
   strip.begin();
   strip.show();
@@ -171,23 +128,15 @@ void setup() {
   //100hz sample rate
   itgWrite(itgAddress, SMPLRT_DIV, 9);
 
-  //set button to input
+  //set button/audio to input
   pinMode(BUTPIN, INPUT);
+  pinMode(10,OUTPUT);
+  pinMode(11,OUTPUT);
 }
 
 
 void loop() {
-  /* TODO: get button to advance track*/
-
-  //play the track. If the track is already playing
-  //this will do nothing
-  MP3player.playTrack(2);
-
-  //Get the db reading from both channels
-  union twobyte vu;
-  vu.word = MP3player.getVUlevel();
-  leftChannel  = vu.byte[1];
-  rightChannel = vu.byte[0];
+  /* TODO: get button to change stuff */
   
   //Get gyro reading
   if (bufferTime != 0){
@@ -206,21 +155,22 @@ void loop() {
   else {
   bufferTime = millis();
   }
- 
-  //adjust the pitch/volume/etc with the
-  //gyro sensor
-  gyroAdjust();
+
+  //fix angles
+  xAng = fixAngle(xAng);
+  yAng = fixAngle(yAng);
+  zAng = fixAngle(zAng);
+
+  //set angles to more sensible numbers
+  xAna = setAna(xAng);
+  yAna = setAna(yAng);
+  zAna = setAna(zAng);
+
+  //synth update
+  updateSynth();
 
   //update the neopixel grid
   updateNeopixels();
-}
-
-void gyroAdjust() {
-  //adjust pitch/speed/volume based on gyro information.
-  //This will be run every time
-  //Use the refs I gave you in the header to help
-
-  return;
 }
 
 void updateNeopixels() {
@@ -232,6 +182,34 @@ void updateNeopixels() {
 
   return;
 }
+
+//Start synth stuff
+long fixAngle(long Ang){
+  while (Ang > 2800){
+    Ang = Ang - 5600;
+  }
+  while (Ang < -2800){
+    Ang = Ang + 5600;
+  }
+
+  return Ang;
+}
+
+long setAna(long Ang){
+  long Ana = Ang + 2800;
+  Ana = Ana/175L;
+  Ana = Ana*32L;
+
+  Serial.println(Ana);
+
+  return Ana;
+}
+
+void updateSynth(){
+
+}
+
+//end synth stuff
 
 //Start gyro functions
 //This function will write a value to a register on the itg-3200.
@@ -303,7 +281,10 @@ int matrix(int x, int y){
   return result;
 }
 
+
+
 /* License Info:
    This is licensed under Beerware R42. There is some code from
-   Sparkfun's ITG3200 example code in here, so thanks to them for that
+   Sparkfun's ITG3200 example code in here, as well as the APC
+   code from Beavis Audio Research
 */
