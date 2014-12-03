@@ -33,12 +33,10 @@ uint8_t grain2Decay;
 
 
 // Changing these will also requires rewriting audioOn()
-//    Output is on pin 10 and 11
+//    Output is on pin 3
 //
-#define PWM_PIN1      3
-#define PWM_PIN2      11
-#define PWM1_VALUE    OCR2B
-#define PWM2_VALUE    OCR2A
+#define PWM_PIN       3
+#define PWM_VALUE    OCR2B
 #define LED_PIN       13
 #define LED_PORT      PORTB
 #define LED_BIT       5
@@ -87,25 +85,15 @@ uint16_t mapPentatonic(uint16_t input) {
 
 
 void audioOn() {
-#if defined(__AVR_ATmega8__)
-  // ATmega8 has different registers
-  TCCR2 = _BV(WGM20) | _BV(COM21) | _BV(CS20);
-  TIMSK = _BV(TOIE2);
-#elif defined(__AVR_ATmega1280__)
-  TCCR3A = _BV(COM3C1) | _BV(WGM30);
-  TCCR3B = _BV(CS30);
-  TIMSK3 = _BV(TOIE3);
-#else
   // Set up PWM to 31.25kHz, phase accurate
   TCCR2A = _BV(COM2B1) | _BV(WGM20);
   TCCR2B = _BV(CS20);
   TIMSK2 = _BV(TOIE2);
-#endif
 }
 
 
 void setup(){
-  pinMode(PWM_PIN1,OUTPUT);
+  pinMode(PWM_PIN,OUTPUT);
   audioOn();
   pinMode(LED_PIN,OUTPUT);
 }
@@ -170,6 +158,5 @@ SIGNAL(PWM_INTERRUPT)
   if (output > 255) output = 255;
 
   // Output to PWM (this is faster than using analogWrite)  
-  PWM1_VALUE = output;
-  PWM2_VALUE = output;
+  PWM_VALUE = output;
 }
