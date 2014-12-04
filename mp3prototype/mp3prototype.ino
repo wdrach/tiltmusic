@@ -75,7 +75,10 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 
 //stuff for the button
-#define BUTPIN 10
+#define STATEPIN 2 //needs interrupt
+#define VOICE1PIN -1
+#define VOICE2PIN -1//rename for playback functionality/actual pins
+#define BEATPIN   -1
 int buttonState = 0;
 
 //buffer for the millis of the last gyro reading
@@ -109,6 +112,14 @@ const char DLPF_FS_SEL_0 = (1<<3);
 const char DLPF_FS_SEL_1 = (1<<4);
 const char itgAddress = 0x69;
 //end gyro defines
+
+//Start global sequencer defines
+unsigned int beat;
+unsigned int voice1[8] = {0}; // zero is no sound; potentially multiple vars for volume/octave?
+unsigned int voice2[8] = {0}; // we could easily write in a prebuilt sequence to start
+//unsigned int speed;
+volatile boolean PLAYING;
+//End state defines
 
 //start synth stuff
 #include <avr/io.h>
@@ -197,8 +208,16 @@ void setup() {
   //100hz sample rate
   itgWrite(itgAddress, SMPLRT_DIV, 9);
 
+  //state pin and interrupt
+  pinMode(STATEPIN, INPUT);
+  attachInterrupt(0, updateState, FALLING);
+  
+   //Extra Button Setup
+  pinMode(VOICE1PIN, INPUT);
+  pinMode(VOICE2PIN, INPUT);
+  pinMode(BEATPIN, INPUT);
+  
   //set button/audio to input
-  pinMode(BUTPIN, INPUT);
   pinMode(PWM_PIN,OUTPUT);
   audioOn();
   pinMode(LED_PIN,OUTPUT);
@@ -225,7 +244,7 @@ void loop() {
   else {
   bufferTime = millis();
   }
-
+  
   //fix angles
   xAng = fixAngle(xAng);
   yAng = fixAngle(yAng);
@@ -236,20 +255,58 @@ void loop() {
   yAna = setAna(yAng);
   zAna = setAna(zAng);
 
+  //read button states;
+  
+  switch(PLAYING) {
+    case true  : {
+      playbackNeopixels();
+      //playback speed/timing logic: every n cycles/millis?
+      //updateTempo(); //maybe?
+    };
+    case false  : { //in editing mode
+      updateBeat(); //if button pressed
+      updateSequence(); //elseif button pressed
+      editorNeopixels(); //is led state persistent?
+    };
+  }
+  
   //synth update
   updateSynth();
-
-  //update the neopixel grid
-  updateNeopixels();
+  
+  //display all visualization changes
+  strip.show();
 }
 
-void updateNeopixels() {
+void updateState() {
+  //neeed to debounce?
+  PLAYING = !PLAYING;
+  return; 
+}
+
+void updateBeat() {
+  //scale 
+  return; 
+}
+
+void updateSequence() {
+  //scale 
+  return; 
+}
+
+void editorNeopixels() {
+  //updates all neopixel grid for edit view
+
+  return;
+}
+
+void playbackNeopixels() {
   //You have 2 global vars to use here, the left channel
   //and the right channel which will be values from 0 to 31
   //based on the output that is at that time. I did some
   //testing and it seems like 15-31 is used the most
   //Use the Neopixel docs that I gave above to help.
 
+  //playback visualizations go here
   return;
 }
 
@@ -288,15 +345,21 @@ void updateSynth(){
   //syncPhaseInc = mapMidi(analogRead(SYNC_CONTROL));
   
   // Stepped pentatonic mapping: D, E, G, A, B
+  
+  
+  //you should reference global sequencer vars beat, voice1 and voice2 to play notes -typo
+  //dont need the digital read below(I dont think)
+  
+  
   syncPhaseInc = mapPentatonic(zAna);
 
-  buttonState = digitalRead(BUTPIN);
+  buttonState = digitalRead(STATEPIN);
   if (buttonState == HIGH){
     grainPhaseInc  = mapPhaseInc(yAna) / 2;
     grainDecay     = analogRead(xAna) / 8;  
   }
   else{
-    grain2PhaseInc = mapPhaseInc(yAna) / 2;
+    grain2PhaseInc = mapPhaseInc(yAna) / 2; //second voice
     grain2Decay    = analogRead(xAna) / 4;
   }
 
