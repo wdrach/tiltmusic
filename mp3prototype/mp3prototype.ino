@@ -80,6 +80,9 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 #define VOICE2PIN -1//rename for playback functionality/actual pins
 #define BEATPIN   -1
 int buttonState = 0;
+unsigned int v1ButtonState = 0;
+unsigned int v2ButtonState = 0;
+unsigned int beatButtonState = 0;
 
 //buffer for the millis of the last gyro reading
 unsigned long bufferTime = 0;
@@ -256,6 +259,9 @@ void loop() {
   zAna = setAna(zAng);
 
   //read button states;
+  v1ButtonState = digitalRead(VOICE1PIN);
+  v2ButtonState = digitalRead(VOICE2PIN);
+  beatButtonState = digitalRead(BEATPIN);  
   
   switch(PLAYING) {
     case true  : {
@@ -264,8 +270,9 @@ void loop() {
       //updateTempo(); //maybe?
     };
     case false  : { //in editing mode
-      updateBeat(); //if button pressed
-      updateSequence(); //elseif button pressed
+      if (beatButtonState == HIGH) updateBeat();
+      else if (v1ButtonState == HIGH || v2ButtonState == HIGH) 
+        updateSequence();
       editorNeopixels(); //is led state persistent?
     };
   }
@@ -284,12 +291,21 @@ void updateState() {
 }
 
 void updateBeat() {
-  //scale 
+  //update sequencer position
+  beat = xAna;//add scaling
   return; 
 }
 
 void updateSequence() {
-  //scale 
+  if (v1ButtonState == HIGH) {
+    voice1[beat] = xAna;
+    //voice1vol[beat] = yAna
+  }
+  
+  if (v2ButtonState == HIGH) {
+    voice2[beat] = xAna;
+  }
+  
   return; 
 }
 
@@ -348,7 +364,7 @@ void updateSynth(){
   
   
   //you should reference global sequencer vars beat, voice1 and voice2 to play notes -typo
-  //dont need the digital read below(I dont think)
+  //dont want the digital read below but I dont want to break existing functionality
   
   
   syncPhaseInc = mapPentatonic(zAna);
