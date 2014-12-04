@@ -292,18 +292,18 @@ void updateState() {
 
 void updateBeat() {
   //update sequencer position
-  beat = xAna;//add scaling
+  beat = xAna / 128;//add scaling
   return; 
 }
 
 void updateSequence() {
   if (v1ButtonState == HIGH) {
-    voice1[beat] = xAna; //needs scaling
+    voice1[beat] = xAna / 128; //needs scaling
     //voice1vol[beat] = yAna
   }
   
   if (v2ButtonState == HIGH) {
-    voice2[beat] = xAna; //needs scaling
+    voice2[beat] = xAna / 128; //needs scaling
   }
   
   return; 
