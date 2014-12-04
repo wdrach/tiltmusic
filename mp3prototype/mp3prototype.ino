@@ -298,12 +298,12 @@ void updateBeat() {
 
 void updateSequence() {
   if (v1ButtonState == HIGH) {
-    voice1[beat] = xAna;
+    voice1[beat] = xAna; //needs scaling
     //voice1vol[beat] = yAna
   }
   
   if (v2ButtonState == HIGH) {
-    voice2[beat] = xAna;
+    voice2[beat] = xAna; //needs scaling
   }
   
   return; 
@@ -311,7 +311,13 @@ void updateSequence() {
 
 void editorNeopixels() {
   //updates all neopixel grid for edit view
-
+  //if slow will optimize for pins that are already set correctly
+  strip.clear(); //clear screen
+  for (int i = 0; i < 8; i++) strip.setPixelColor(matrix(beat, i), (50, 50, 50)); //highlight working row
+  if (voice1[beat] > 0 && voice1[beat] < 9)
+    strip.setPixelColor(matrix(beat, voice1[beat] - 1), {0, 255, 255});
+  if (voice2[beat] > 0 && voice2[beat] < 9)
+    strip.setPixelColor(matrix(beat, voice2[beat] - 1), {255, 192, 255});
   return;
 }
 
@@ -375,7 +381,7 @@ void updateSynth(){
     grainDecay     = analogRead(xAna) / 8;  
   }
   else{
-    grain2PhaseInc = mapPhaseInc(yAna) / 2; //second voice
+    grain2PhaseInc = mapPhaseInc(yAna) / 2; //second voice or synth effect?
     grain2Decay    = analogRead(xAna) / 4;
   }
 
