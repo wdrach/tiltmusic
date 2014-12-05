@@ -75,8 +75,14 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 
 //stuff for the button
-#define BUTPIN 10
+#define STATEPIN 2 //needs interrupt
+#define VOICE1PIN -1
+#define VOICE2PIN -1//rename for playback functionality/actual pins
+#define BEATPIN   -1
 int buttonState = 0;
+unsigned int v1ButtonState = 0;
+unsigned int v2ButtonState = 0;
+unsigned int beatButtonState = 0;
 
 //buffer for the millis of the last gyro reading
 unsigned long bufferTime = 0;
@@ -109,6 +115,14 @@ const char DLPF_FS_SEL_0 = (1<<3);
 const char DLPF_FS_SEL_1 = (1<<4);
 const char itgAddress = 0x69;
 //end gyro defines
+
+//Start global sequencer defines
+unsigned int beat = 0;
+unsigned int voice1[8] = {0}; // zero is no sound; potentially multiple vars for volume/octave?
+unsigned int voice2[8] = {0}; // we could easily write in a prebuilt sequence to start
+//unsigned int speed;
+volatile boolean PLAYING;
+//End state defines
 
 //start synth stuff
 #include <avr/io.h>
@@ -197,8 +211,16 @@ void setup() {
   //100hz sample rate
   itgWrite(itgAddress, SMPLRT_DIV, 9);
 
+  //state pin and interrupt
+  pinMode(STATEPIN, INPUT);
+  attachInterrupt(0, updateState, FALLING);
+  
+   //Extra Button Setup
+  pinMode(VOICE1PIN, INPUT);
+  pinMode(VOICE2PIN, INPUT);
+  pinMode(BEATPIN, INPUT);
+  
   //set button/audio to input
-  pinMode(BUTPIN, INPUT);
   pinMode(PWM_PIN,OUTPUT);
   audioOn();
   pinMode(LED_PIN,OUTPUT);
@@ -225,7 +247,7 @@ void loop() {
   else {
   bufferTime = millis();
   }
-
+  
   //fix angles
   xAng = fixAngle(xAng);
   yAng = fixAngle(yAng);
@@ -236,20 +258,77 @@ void loop() {
   yAna = setAna(yAng);
   zAna = setAna(zAng);
 
+  //read button states;
+  v1ButtonState = digitalRead(VOICE1PIN);
+  v2ButtonState = digitalRead(VOICE2PIN);
+  beatButtonState = digitalRead(BEATPIN);  
+  
+  switch(PLAYING) {
+    case true  : {
+      playbackNeopixels();
+      //playback speed/timing logic: every n cycles/millis?
+      //updateTempo(); //maybe?
+    };
+    case false  : { //in editing mode
+      if (beatButtonState == HIGH) updateBeat();
+      else if (v1ButtonState == HIGH || v2ButtonState == HIGH) 
+        updateSequence();
+      editorNeopixels(); //is led state persistent?
+    };
+  }
+  
   //synth update
   updateSynth();
-
-  //update the neopixel grid
-  updateNeopixels();
+  
+  //display all visualization changes
+  strip.show();
 }
 
-void updateNeopixels() {
+void updateState() {
+  //neeed to debounce?
+  PLAYING = !PLAYING;
+  return; 
+}
+
+void updateBeat() {
+  //update sequencer position
+  beat = xAna / 128;//add scaling
+  return; 
+}
+
+void updateSequence() {
+  if (v1ButtonState == HIGH) {
+    voice1[beat] = xAna / 128; //needs scaling
+    //voice1vol[beat] = yAna
+  }
+  
+  if (v2ButtonState == HIGH) {
+    voice2[beat] = xAna / 128; //needs scaling
+  }
+  
+  return; 
+}
+
+void editorNeopixels() {
+  //updates all neopixel grid for edit view
+  //if slow will optimize for pins that are already set correctly
+  strip.clear(); //clear screen //is this included in a newer version of the library?
+  for (int i = 0; i < 8; i++) strip.setPixelColor(matrix(beat, i), (50, 50, 50)); //highlight working row
+  if (voice1[beat] > 0 && voice1[beat] < 9)
+    strip.setPixelColor(matrix(beat, voice1[beat] - 1), (0, 255, 255));
+  if (voice2[beat] > 0 && voice2[beat] < 9)
+    strip.setPixelColor(matrix(beat, voice2[beat] - 1), (255, 192, 255));
+  return;
+}
+
+void playbackNeopixels() {
   //You have 2 global vars to use here, the left channel
   //and the right channel which will be values from 0 to 31
   //based on the output that is at that time. I did some
   //testing and it seems like 15-31 is used the most
   //Use the Neopixel docs that I gave above to help.
 
+  //playback visualizations go here
   return;
 }
 
@@ -288,15 +367,21 @@ void updateSynth(){
   //syncPhaseInc = mapMidi(analogRead(SYNC_CONTROL));
   
   // Stepped pentatonic mapping: D, E, G, A, B
+  
+  
+  //you should reference global sequencer vars beat, voice1 and voice2 to play notes -typo
+  //dont want the digital read below but I dont want to break existing functionality
+  
+  
   syncPhaseInc = mapPentatonic(zAna);
 
-  buttonState = digitalRead(BUTPIN);
+  buttonState = digitalRead(STATEPIN);
   if (buttonState == HIGH){
     grainPhaseInc  = mapPhaseInc(yAna) / 2;
     grainDecay     = analogRead(xAna) / 8;  
   }
   else{
-    grain2PhaseInc = mapPhaseInc(yAna) / 2;
+    grain2PhaseInc = mapPhaseInc(yAna) / 2; //second voice or synth effect?
     grain2Decay    = analogRead(xAna) / 4;
   }
 
