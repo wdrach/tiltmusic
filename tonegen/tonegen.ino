@@ -117,7 +117,7 @@ unsigned int pentatonic[] = {
      262,  294,  330,  392,  440,
      523,  587,  659,  784,  880,
     1047, 1175, 1319, 1568, 1760,
-}
+};
 //all notes C1-> B6
 unsigned int notes[] = {
       33,   35,   37,   39,   41,   44,   46,   49,   52,   55,   58,   62,
@@ -126,7 +126,7 @@ unsigned int notes[] = {
      262,  277,  294,  311,  330,  349,  370,  392,  415,  440,  466,  494,
      523,  445,  587,  622,  659,  698,  740,  784,  831,  880,  932,  988,
     1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976,
-}
+};
 
 void setup() {
   //initialize the neopixels
@@ -140,11 +140,9 @@ void setup() {
   //100hz sample rate
   itgWrite(itgAddress, SMPLRT_DIV, 9);
 
+  Serial.begin(9600);
   //set button/audio to input
   pinMode(BUTPIN, INPUT);
-  pinMode(PWM_PIN,OUTPUT);
-  audioOn();
-  pinMode(LED_PIN,OUTPUT);
 }
 
 
@@ -176,6 +174,7 @@ void loop() {
   xAna = setAna(xAng);
   yAna = setAna(yAng);
   zAna = setAna(zAng);
+  Serial.println(zAna);
 
   //synth update
   updateSynth();
