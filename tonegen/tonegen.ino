@@ -72,7 +72,7 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 
 //stuff for the button
-#define BUTPIN 10
+#define BUTPIN 2
 int buttonState = 0;
 
 //buffer for the millis of the last gyro reading
@@ -108,24 +108,35 @@ const char itgAddress = 0x69;
 
 //synth vars
 #define SPEAKERPIN 10
-unsigned int notefreq = 0;
+volatile unsigned int notefreq = 0;
+
 //pentatonic CDEGA C1->A6
 //remove in this order 1, 5, 4, 2
-unsigned int pentatonic[] = {
+const unsigned int pentatonic[] = {
       33,   37,   41,   49,   55, 
       65,  147,  165,  196,  220,
      262,  294,  330,  392,  440,
      523,  587,  659,  784,  880,
     1047, 1175, 1319, 1568, 1760,
 };
+
 //all notes C1-> B6
-unsigned int notes[] = {
+const unsigned int notes[] = {
       33,   35,   37,   39,   41,   44,   46,   49,   52,   55,   58,   62,
       65,   69,   73,   78,   82,   87,   93,   98,  104,  110,  117,  123,
      131,  139,  147,  156,  165,  175,  185,  196,  208,  220,  233,  247,
      262,  277,  294,  311,  330,  349,  370,  392,  415,  440,  466,  494,
      523,  445,  587,  622,  659,  698,  740,  784,  831,  880,  932,  988,
     1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976,
+};
+
+//indices of the in pentatonic in the full note list
+const int pentind[] = {
+     0,  2,  4,  7,  9,
+    12, 14, 16, 19, 21,
+    24, 26, 28, 31, 33,
+    36, 38, 40, 43, 45,
+    48, 50, 52, 55, 57
 };
 
 void setup() {
@@ -171,13 +182,12 @@ void loop() {
   zAng = fixAngle(zAng);
 
   //set angles to more sensible numbers
-  xAna = setAna(xAng);
-  yAna = setAna(yAng);
-  zAna = setAna(zAng);
-  Serial.print('\n');
+  xAna = setAna(xAng, false);
+  yAna = setAna(yAng, false);
+  zAna = setAna(zAng, true);
 
   //synth update
-  //updateSynth();
+  updateSynth();
 
   //update the neopixel grid
   updateNeopixels();
@@ -201,33 +211,67 @@ long fixAngle(long Ang){
   return Ang;
 }
 
-long setAna(long Ang){
-  long Ana = Ang + 2800;
-  Ana = Ana/175L;
-  Ana = Ana*32L;
-  Serial.print(Ana);
+long setAna(long Ang, boolean full){
+  long Ana = 0;
+  if (full){
+    Ana = Ang + 2800;
+    Ana = Ana*32L;
+    Ana = Ana/175L;
+  }
+  else {
+    Ana = Ang + 1400;
+    Ana = Ana*64L;
+    Ana = Ana/175L;
+  }
+  if (Ana < 0){
+    Ana = 0;
+  }
+  if (Ana > 1023){
+    Ana = 1023;
+  }
+  
   return Ana;
 }
 
 void updateSynth(){
-    int noteind = pentaDigit(zAna);
-    notefreq = pentatonic[noteind];
+  int noteind = pentaDigit(zAna);
+  noteind  = pentind[noteind];
+  noteind  = noteind + ((xAna/128) - 4);
+
+  //even it out
+  if (noteind < 0){
+    noteind = 0;
+  }
+  if (noteind > 60){
+    noteind = 60;
+  }
+  notefreq = notes[noteind];
+  notefreq = notefreq + ((yAna - 512)/2);
+
+  buttonState = digitalRead(BUTPIN);
+  Serial.println(buttonState == 1);
+  if (buttonState == 1){
     tone(SPEAKERPIN, notefreq);
-    return;
+  }
+  else {
+    noTone(SPEAKERPIN);
+  }
+
+  return;
 }
 
 byte pentaDigit(int Ana){
-    int PD;
-    PD = Ana/41;
-    PD = PD + 1;
-    if (PD > 24){
-        PD = 24;
-    }
-    if (PD < 0){
-        PD = 0;
-    }
-    byte pentaKill = PD;
-    return pentaKill;
+  int PD;
+  PD = Ana/41;
+  PD = PD + 1;
+  if (PD > 24){
+      PD = 24;
+  }
+  if (PD < 0){
+    PD = 0;
+  }
+  byte pentaKill = PD;
+  return pentaKill;
 }
 
 //end synth stuff
