@@ -174,7 +174,7 @@ void loop() {
   xAna = setAna(xAng, 2800);
   yAna = setAna(yAng, 2800);
   zAna = setAna(zAng, 2800);
-  Serial.println(zAna);
+  //Serial.println(zAna);
 
   //synth update
   updateSynth();
@@ -215,7 +215,8 @@ long setAna(long Ang, int scale){
 
 void updateSynth(){
     notefreq = pentaDigit(zAna);
-    tone(SPEAKERPIN, notefreq);
+    //tone(SPEAKERPIN, notefreq);
+    Serial.println(notefreq);
     return;
 }
 
