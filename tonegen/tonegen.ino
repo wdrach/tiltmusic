@@ -171,10 +171,10 @@ void loop() {
   zAng = fixAngle(zAng);
 
   //set angles to more sensible numbers
-  xAna = setAna(xAng, 2800);
-  yAna = setAna(yAng, 2800);
-  zAna = setAna(zAng, 2800);
-  //Serial.println(zAna);
+  xAna = setAna(xAng);
+  yAna = setAna(yAng);
+  zAna = setAna(zAng);
+  Serial.println(zAna);
 
   //synth update
   updateSynth();
@@ -184,10 +184,6 @@ void loop() {
 }
 
 void updateNeopixels() {
-  //You have 2 global vars to use here, the left channel
-  //and the right channel which will be values from 0 to 31
-  //based on the output that is at that time. I did some
-  //testing and it seems like 15-31 is used the most
   //Use the Neopixel docs that I gave above to help.
 
   return;
@@ -205,18 +201,18 @@ long fixAngle(long Ang){
   return Ang;
 }
 
-long setAna(long Ang, int scale){
-  long Ana = Ang + scale;
-  Ana = Ana*32L;
+long setAna(long Ang){
+  long Ana = Ang + 2800;
   Ana = Ana/175L;
+  Ana = Ana*32L;
 
   return Ana;
 }
 
 void updateSynth(){
-    notefreq = pentaDigit(zAna);
-    //tone(SPEAKERPIN, notefreq);
-    Serial.println(notefreq);
+    int noteind = pentaDigit(zAna);
+    notefreq = pentatonic[noteind];
+    tone(SPEAKERPIN, notefreq);
     return;
 }
 
