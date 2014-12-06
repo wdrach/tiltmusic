@@ -174,10 +174,10 @@ void loop() {
   xAna = setAna(xAng);
   yAna = setAna(yAng);
   zAna = setAna(zAng);
-  Serial.println(zAna);
+  Serial.print('\n');
 
   //synth update
-  updateSynth();
+  //updateSynth();
 
   //update the neopixel grid
   updateNeopixels();
@@ -205,7 +205,7 @@ long setAna(long Ang){
   long Ana = Ang + 2800;
   Ana = Ana/175L;
   Ana = Ana*32L;
-
+  Serial.print(Ana);
   return Ana;
 }
 
