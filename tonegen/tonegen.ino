@@ -107,6 +107,7 @@ const char DLPF_FS_SEL_1 = (1<<4);
 const char itgAddress = 0x69;
 
 //synth vars
+#define SPEAKERPIN 10
 unsigned int notefreq = 0;
 //pentatonic CDEGA C1->A6
 //remove in this order 1, 5, 4, 2
@@ -214,7 +215,23 @@ long setAna(long Ang){
 }
 
 void updateSynth(){
+    notefreq = pentaDigit(zAna);
+    tone(SPEAKERPIN, notefreq);
+    return;
+}
 
+byte pentaDigit(int Ana){
+    int PD;
+    PD = Ana/41;
+    PD = PD + 1;
+    if (PD > 24){
+        PD = 24;
+    }
+    if (PD < 0){
+        PD = 0;
+    }
+    byte pentaKill = PD;
+    return pentaKill;
 }
 
 //end synth stuff
