@@ -171,9 +171,9 @@ void loop() {
   zAng = fixAngle(zAng);
 
   //set angles to more sensible numbers
-  xAna = setAna(xAng);
-  yAna = setAna(yAng);
-  zAna = setAna(zAng);
+  xAna = setAna(xAng, 2800);
+  yAna = setAna(yAng, 2800);
+  zAna = setAna(zAng, 2800);
   Serial.println(zAna);
 
   //synth update
@@ -205,10 +205,10 @@ long fixAngle(long Ang){
   return Ang;
 }
 
-long setAna(long Ang){
-  long Ana = Ang + 2800;
-  Ana = Ana/175L;
+long setAna(long Ang, int scale){
+  long Ana = Ang + scale;
   Ana = Ana*32L;
+  Ana = Ana/175L;
 
   return Ana;
 }
