@@ -77,6 +77,10 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 #define BUTPIN 2
 int buttonState = 0;
 
+//switch
+#define SWPIN 3
+int lowPower = 0;
+
 //buffer for the millis of the last gyro reading
 unsigned long bufferTime = 0;
 unsigned long currTime = 0;
@@ -158,49 +162,59 @@ void setup() {
   #endif
   //set button/audio to input
   pinMode(BUTPIN, INPUT);
+  pinMode(SWPIN, INPUT);
   pinMode(SPEAKER5V, OUTPUT);
   digitalWrite(SPEAKER5V, HIGH);
 }
 
 
 void loop() {
-  //Get gyro reading
-  if (bufferTime != 0){
-    //amount of ms since last poll
-    currTime = millis();
-    totTime = currTime - bufferTime;
+  lowPower = digitalRead(SWPIN);
+  if (lowPower == 1){
+    //Get gyro reading
+    if (bufferTime != 0){
+      //amount of ms since last poll
+      currTime = millis();
+      totTime = currTime - bufferTime;
     
-    //get the new angles
-    xAng = angle(GYRO_XOUT_H, GYRO_XOUT_L, -54, xAng);
-    yAng = angle(GYRO_YOUT_H, GYRO_YOUT_L, -16, yAng);
-    zAng = angle(GYRO_ZOUT_H, GYRO_ZOUT_L, 4, zAng);
+      //get the new angles
+      xAng = angle(GYRO_XOUT_H, GYRO_XOUT_L, -54, xAng);
+      yAng = angle(GYRO_YOUT_H, GYRO_YOUT_L, -16, yAng);
+      zAng = angle(GYRO_ZOUT_H, GYRO_ZOUT_L, 4, zAng);
 
-    //set bufferTime
-    bufferTime = currTime;
+      //set bufferTime
+      bufferTime = currTime;
+    }
+    else {
+      bufferTime = millis();
+    }
+
+    //fix angles
+    xAng = fixAngle(xAng);
+    #ifdef DEBUG
+      Serial.print("X: ");
+    #endif
+    yAng = fixAngle(yAng);
+    #ifdef DEBUG
+      Serial.print("Y: ");
+    #endif
+    zAng = fixAngle(zAng);
+    #ifdef DEBUG
+      Serial.print("Z: ");
+      Serial.print(" | ");
+    #endif
+
+    //set angles to more sensible numbers
+    xAna = setAna(xAng, false);
+    yAna = setAna(yAng, false);
+    zAna = setAna(zAng, true);
+
+    //synth update
+    updateSynth();
+
+    //update the neopixel grid
+    updateNeopixels();
   }
-  else {
-  bufferTime = millis();
-  }
-
-  //fix angles
-  xAng = fixAngle(xAng);
-  Serial.print("X: ");
-  yAng = fixAngle(yAng);
-  Serial.print("Y: ");
-  zAng = fixAngle(zAng);
-  Serial.print("Z: ");
-  Serial.print(" | ");
-
-  //set angles to more sensible numbers
-  xAna = setAna(xAng, false);
-  yAna = setAna(yAng, false);
-  zAna = setAna(zAng, true);
-
-  //synth update
-  updateSynth();
-
-  //update the neopixel grid
-  updateNeopixels();
 }
 
 void updateNeopixels() {
