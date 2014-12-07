@@ -107,7 +107,7 @@ const char DLPF_FS_SEL_1 = (1<<4);
 const char itgAddress = 0x69;
 
 //synth vars
-#define SPEAKERPIN 10
+#define SPEAKERPIN 11
 volatile unsigned int notefreq = 0;
 
 //pentatonic CDEGA C1->A6
@@ -195,7 +195,50 @@ void loop() {
 
 void updateNeopixels() {
   //Use the Neopixel docs that I gave above to help.
+  
+  unsigned int Red=0; //Smileyface colors
+  unsigned int Blue=0;
+  unsigned int Green=0;
+  unsigned int Red1=0;//background colors
+  unsigned int Blue2=0;
+  unsigned int Green3=0;
 
+  Red   = xAna/8;
+  Blue  = yAna/4;
+  Green = zAna/8;
+
+  for(int i=0; i++;i<64) {   //set background color
+    strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
+  }
+  
+  strip.setPixelColor(2,strip.Color(Red,Blue,Green)); //Display a smiley face
+  strip.setPixelColor(3,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(4,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(5,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(9,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(14,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(16,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(23,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(24,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(26,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(29,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(31,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(32,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(39,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(40,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(42,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(45,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(47,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(49,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(51,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(52,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(54,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(58,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(59,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(60,strip.Color(Red,Blue,Green));
+  strip.setPixelColor(61,strip.Color(Red,Blue,Green));
+  
+  strip.show();
   return;
 }
 
@@ -236,7 +279,7 @@ long setAna(long Ang, boolean full){
 void updateSynth(){
   int noteind = pentaDigit(zAna);
   noteind  = pentind[noteind];
-  noteind  = noteind + ((xAna/128) - 4);
+  noteind  = noteind - ((xAna/128) - 4);
 
   //even it out
   if (noteind < 0){
@@ -250,12 +293,12 @@ void updateSynth(){
 
   buttonState = digitalRead(BUTPIN);
   Serial.println(buttonState == 1);
-  if (buttonState == 1){
+  //if (buttonState == 1){
     tone(SPEAKERPIN, notefreq);
-  }
-  else {
-    noTone(SPEAKERPIN);
-  }
+  //}
+  //else {
+    //noTone(SPEAKERPIN);
+  //}
 
   return;
 }
