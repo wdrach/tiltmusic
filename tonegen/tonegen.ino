@@ -215,6 +215,12 @@ void loop() {
     //update the neopixel grid
     updateNeopixels();
   }
+  else{
+    for(int k = 0; k++; k<64){
+      strip.setPixelColor(k,strip.Color(0,0,0));
+    }
+    strip.show();
+  }
 }
 
 void updateNeopixels() {
