@@ -63,6 +63,8 @@
   Example https://github.com/sparkfun/ITG-3200_Breakout/tree/master/Firmware/ITG3200_Example
 */
 
+#define DEBUG 1
+
 //libraries
 #include <Adafruit_NeoPixel.h>
 #include <Wire.h>
@@ -108,6 +110,7 @@ const char itgAddress = 0x69;
 
 //synth vars
 #define SPEAKERPIN 11
+#define SPEAKER5V  13
 volatile unsigned int notefreq = 0;
 
 //pentatonic CDEGA C1->A6
@@ -150,10 +153,13 @@ void setup() {
   itgWrite(itgAddress, DLPF_FS, (DLPF_FS_SEL_0|DLPF_FS_SEL_1|DLPF_CFG_0));
   //100hz sample rate
   itgWrite(itgAddress, SMPLRT_DIV, 9);
-
-  Serial.begin(9600);
+  #ifdef DEBUG
+    Serial.begin(9600);
+  #endif
   //set button/audio to input
   pinMode(BUTPIN, INPUT);
+  pinMode(SPEAKER5V, OUTPUT);
+  digitalWrite(SPEAKER5V, HIGH);
 }
 
 
@@ -178,8 +184,12 @@ void loop() {
 
   //fix angles
   xAng = fixAngle(xAng);
+  Serial.print("X: ");
   yAng = fixAngle(yAng);
+  Serial.print("Y: ");
   zAng = fixAngle(zAng);
+  Serial.print("Z: ");
+  Serial.print(" | ");
 
   //set angles to more sensible numbers
   xAna = setAna(xAng, false);
@@ -202,6 +212,8 @@ void updateNeopixels() {
   unsigned int Red1=0;//background colors
   unsigned int Blue2=0;
   unsigned int Green3=0;
+  
+  static int smileArray[] = {2,3,4,5,9,14,16,23,24,26,29,31,32,39,40,42,45,47,49,51,52,54,58,59,60};
 
   Red   = xAna/8;
   Blue  = yAna/4;
@@ -210,34 +222,11 @@ void updateNeopixels() {
   for(int i=0; i++;i<64) {   //set background color
     strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
   }
-  
-  strip.setPixelColor(2,strip.Color(Red,Blue,Green)); //Display a smiley face
-  strip.setPixelColor(3,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(4,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(5,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(9,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(14,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(16,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(23,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(24,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(26,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(29,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(31,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(32,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(39,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(40,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(42,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(45,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(47,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(49,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(51,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(52,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(54,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(58,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(59,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(60,strip.Color(Red,Blue,Green));
-  strip.setPixelColor(61,strip.Color(Red,Blue,Green));
-  
+
+  for(int j=0; j++; j<25){
+    strip.setPixelColor(j,strip.Color(Red,Blue,Green)); //Display a smiley face
+  }
+
   strip.show();
   return;
 }
@@ -250,6 +239,10 @@ long fixAngle(long Ang){
   while (Ang < -2800){
     Ang = Ang + 5600;
   }
+  #ifdef DEBUG
+    Serial.print(Ang);
+    Serial.print("|");
+  #endif
 
   return Ang;
 }
@@ -272,7 +265,7 @@ long setAna(long Ang, boolean full){
   if (Ana > 1023){
     Ana = 1023;
   }
-  
+
   return Ana;
 }
 
@@ -292,13 +285,18 @@ void updateSynth(){
   notefreq = notefreq + ((yAna - 512)/2);
 
   buttonState = digitalRead(BUTPIN);
-  Serial.println(buttonState == 1);
-  //if (buttonState == 1){
+  #ifdef DEBUG
+    Serial.print(notefreq);
+    Serial.print("|");
+    Serial.print(buttonState);
+  #endif
+
+  if (buttonState == 1){
     tone(SPEAKERPIN, notefreq);
-  //}
-  //else {
-    //noTone(SPEAKERPIN);
-  //}
+  }
+  else {
+    noTone(SPEAKERPIN);
+  }
 
   return;
 }
@@ -388,8 +386,6 @@ int matrix(int x, int y){
   int result = (56 - y*8) + x;
   return result;
 }
-
-
 
 /* License Info:
    This is licensed under Beerware R42. There is some code from
