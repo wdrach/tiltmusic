@@ -63,10 +63,17 @@
   Example https://github.com/sparkfun/ITG-3200_Breakout/tree/master/Firmware/ITG3200_Example
 */
 
-#define DEBUG 1
-#define ALWAYSON 0
-#define TONEON 1
-//#define ENABLENEO 1
+//Debug options. When DEBUG is not commented out
+//it prints lots of info about whats going on to
+//the serial monitor. Setting ALWAYSON to true will
+//disable the power on switch. Uncommenting TONEON
+//will disable the button, and commenting out ENABLENEO
+//will turn off the grid.
+
+#define DEBUG true
+#define ALWAYSON false
+//#define TONEON true
+#define ENABLENEO true
 
 //libraries
 #include <Adafruit_NeoPixel.h>
@@ -172,6 +179,7 @@ void setup() {
 void loop() {
   lowPower = digitalRead(SWPIN);
   if (lowPower == 1 || ALWAYSON){
+    strip.setBrightness(1);
     //Get gyro reading
     if (bufferTime != 0){
       //amount of ms since last poll
@@ -217,11 +225,12 @@ void loop() {
     #ifdef ENABLENEO
       updateNeopixels();
     #endif
+    #ifdef DEBUG
+      Serial.println("");
+    #endif
   }
   else{
-    for(int k = 0; k++; k<64){
-      strip.setPixelColor(k,strip.Color(0,0,0));
-    }
+    strip.setBrightness(0);
     strip.show();
     noTone(SPEAKERPIN);
     xAng = 0;
@@ -234,169 +243,24 @@ void loop() {
 }
 
 void updateNeopixels(){
-  
-  unsigned int Red=0; //Smileyface colors
+
+  unsigned int Red=0; 
   unsigned int Blue=0;
   unsigned int Green=0;
-  unsigned int Red1=0;//background colors
+  unsigned int Red1=0;
   unsigned int Blue2=0;
   unsigned int Green3=0;
   
-  if(xAna > yAna && xAna > zAna){
-  
-  if(xAna < 300) {
-    Red = 100; //if the volume is low don't display an image
-    Blue = 0;
-    Green = 0;
-    Red1 = 0; //if the volume is low don't display an image
-    Blue2 = 100;
-    Green3 = 0;
-  }
-  
-  else if(xAna >= 250 || xAna <= 500) {
-    Red = 150;
-    Blue = 0; 
-    Green = 0;
-    Red1 = 131; //display different colors for different volume levels
-    Blue2 = 212; 
-    Green3 = 225;
-    
-   
-  }
-  else if(xAna >= 500 || xAna <= 700) {
-    Red = 200;
-    Blue = 0;
-    Green = 0;
-    Red1 = 145; //arbitrary color
-    Blue2 = 225;
-    Green3 = 131;
-    
-   
-  }
-  else  if(xAna >= 950 || xAna <= 1023) {
-    Red = 255;
-    Blue = 0;
-    Green = 0;
-    Red1 = 220; //arbitrary color
-    Blue2 = 225;
-    Green3 = 131;
-   
-  }
-  else {
-    
-    Red = 50;
-    Blue = 0; 
-    Green = 0;
-    Red1 = 225; //arbitrary color
-    Blue2 = 131; 
-    Green3 = 159;
-  }
+    Red = xAna/4;
+    Blue = yAna/4;
+    Green = zAna/4;
+    Red1 = 255 - Red; 
+    Blue2 = 255 - Blue;
+    Green3 = 255 - Green;
+
  
-  }
-  
-  else if (yAna > xAna && yAna > zAna){
     
-      if(yAna < 300) {
-    Red = 0; //if the volume is low don't display an image
-    Blue = 100;
-    Green = 0;
-    Red1 = 0; //if the volume is low don't display an image
-    Blue2 = 0;
-    Green3 = 100;
-  }
-  
-  else if(yAna >= 250 || yAna <= 500) {
-    Red = 0;
-    Blue = 150; 
-    Green = 0;
-    Red1 = 131; //display different colors for different volume levels
-    Blue2 = 212; 
-    Green3 = 225;
-    
-   
-  }
-  else if(yAna >= 500 || yAna <= 700) {
-    Red = 0;
-    Blue = 200;
-    Green = 0;
-    Red1 = 145; //arbitrary color
-    Blue2 = 225;
-    Green3 = 131;
-    
-   
-  }
-  else  if(yAna >= 950 || yAna <= 1023) {
-    Red = 0;
-    Blue = 255;
-    Green = 0;
-    Red1 = 220; //arbitrary color
-    Blue2 = 225;
-    Green3 = 131;
-   
-  }
-  else {
-    
-    Red = 0;
-    Blue = 50; 
-    Green = 0;
-    Red1 = 225; //arbitrary color
-    Blue2 = 131; 
-    Green3 = 159;
-  }
-  }
-  else {
-    
-    if(zAna < 300) {
-    Red = 0; //if the volume is low don't display an image
-    Blue = 0;
-    Green = 100;
-    Red1 = 0; //if the volume is low don't display an image
-    Blue2 = 0;
-    Green3 = 0;
-  }
-  
-  else if(zAna >= 250 || zAna <= 500) {
-    Red = 0;
-    Blue = 0; 
-    Green = 150;
-    Red1 = 131; //display different colors for different volume levels
-    Blue2 = 212; 
-    Green3 = 225;
-    
-   
-  }
-  else if(zAna >= 500 || zAna <= 700) {
-    Red = 0;
-    Blue = 0;
-    Green = 150;
-    Red1 = 145; //arbitrary color
-    Blue2 = 225;
-    Green3 = 131;
-    
-   
-  }
-  else  if(zAna >= 950 || zAna <= 1023) {
-    Red = 0;
-    Blue = 0;
-    Green = 200;
-    Red1 = 220; //arbitrary color
-    Blue2 = 225;
-    Green3 = 131;
-   
-  }
-  else {
-    
-    Red = 0;
-    Blue = 0; 
-    Green = 255;
-    Red1 = 225; //arbitrary color
-    Blue2 = 131; 
-    Green3 = 159;
-  }
-  }
-    
-    
-  for(int i=0; i<64; i++) {   //set background color
+ for(int i=0;i < 64; i++) {   //set background color
   strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
   }
   
@@ -409,7 +273,9 @@ void updateNeopixels(){
   strip.show();
 
   return;
-  }
+}
+
+
 
 
 
@@ -474,12 +340,16 @@ void updateSynth(){
     Serial.print(buttonState);
   #endif
 
-  if (buttonState == 0 || TONEON){
+  if (buttonState == 1){
     tone(SPEAKERPIN, notefreq);
   }
   else {
     noTone(SPEAKERPIN);
   }
+
+  #ifdef TONEON
+    tone(SPEAKERPIN, notefreq);
+  #endif
 
   return;
 }
