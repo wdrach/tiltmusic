@@ -363,7 +363,7 @@ byte pentaDigit(int Ana){
   return pentaKill;
 }
 
-void playTone(unsigned int freq, nsigned char vol){
+void playTone(unsigned int freq, unsigned char vol){
     unsigned long bigfreq = freq*10^6;
     unsigned int period = 2/freq;
     analogWrite(SPEAKERPIN, vol);
