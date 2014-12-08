@@ -144,7 +144,7 @@ const unsigned int notes[] = {
      131,  139,  147,  156,  165,  175,  185,  196,  208,  220,  233,  247,
      262,  277,  294,  311,  330,  349,  370,  392,  415,  440,  466,  494,
      523,  445,  587,  622,  659,  698,  740,  784,  831,  880,  932,  988,
-    1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976,
+    1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976
 };
 
 //indices of the in pentatonic in the full note list
@@ -347,6 +347,10 @@ void updateSynth(){
     noTone(SPEAKERPIN);
   }
 
+  if (notefreq < 31){
+      notefreq = 31;
+  }
+
   #ifdef TONEON
     tone(SPEAKERPIN, notefreq);
   #endif
@@ -368,6 +372,15 @@ byte pentaDigit(int Ana){
   return pentaKill;
 }
 
+void playTone(unsigned int freq, unsigned char vol){
+    unsigned long bigfreq = freq*10^6;
+    unsigned int period = 1/freq;
+    analogWrite(SPEAKERPIN, vol);
+    delayMicroseconds(period);
+    analogWrite(SPEAKERPIN, 0);
+    delayMicroseconds(period);
+    return; 
+} 
 //end synth stuff
 
 //Start gyro functions
