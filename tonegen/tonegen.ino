@@ -64,6 +64,9 @@
 */
 
 #define DEBUG 1
+#define ALWAYSON 0
+#define TONEON 1
+//#define ENABLENEO 1
 
 //libraries
 #include <Adafruit_NeoPixel.h>
@@ -72,6 +75,7 @@
 //initialize Neopixels
 #define NEOPIN 5
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
+const int neoArray[26] = {2,3,4,5,9,24,26,23,24,26,29,31,32,39,40,42,45,47,49,51,52,54,58,59,60,61};
 
 //stuff for the button
 #define BUTPIN 2
@@ -114,7 +118,6 @@ const char itgAddress = 0x69;
 
 //synth vars
 #define SPEAKERPIN 11
-#define SPEAKER5V  13
 volatile unsigned int notefreq = 0;
 
 //pentatonic CDEGA C1->A6
@@ -163,14 +166,12 @@ void setup() {
   //set button/audio to input
   pinMode(BUTPIN, INPUT);
   pinMode(SWPIN, INPUT);
-  pinMode(SPEAKER5V, OUTPUT);
-  digitalWrite(SPEAKER5V, HIGH);
 }
 
 
 void loop() {
   lowPower = digitalRead(SWPIN);
-  if (lowPower == 1){
+  if (lowPower == 1 || ALWAYSON){
     //Get gyro reading
     if (bufferTime != 0){
       //amount of ms since last poll
@@ -213,18 +214,26 @@ void loop() {
     updateSynth();
 
     //update the neopixel grid
-    updateNeopixels();
+    #ifdef ENABLENEO
+      updateNeopixels();
+    #endif
   }
   else{
     for(int k = 0; k++; k<64){
       strip.setPixelColor(k,strip.Color(0,0,0));
     }
     strip.show();
+    noTone(SPEAKERPIN);
+    xAng = 0;
+    yAng = 0;
+    zAng = 0;
+    xAna = 512;
+    yAna = 512;
+    zAna = 512;
   }
 }
 
-void updateNeopixels() {
-  //Use the Neopixel docs that I gave above to help.
+void updateNeopixels(){
   
   unsigned int Red=0; //Smileyface colors
   unsigned int Blue=0;
@@ -233,23 +242,177 @@ void updateNeopixels() {
   unsigned int Blue2=0;
   unsigned int Green3=0;
   
-  static int smileArray[] = {2,3,4,5,9,14,16,23,24,26,29,31,32,39,40,42,45,47,49,51,52,54,58,59,60};
-
-  Red   = xAna/8;
-  Blue  = yAna/4;
-  Green = zAna/8;
-
-  for(int i=0; i++;i<64) {   //set background color
-    strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
+  if(xAna > yAna && xAna > zAna){
+  
+  if(xAna < 300) {
+    Red = 100; //if the volume is low don't display an image
+    Blue = 0;
+    Green = 0;
+    Red1 = 0; //if the volume is low don't display an image
+    Blue2 = 100;
+    Green3 = 0;
   }
-
-  for(int j=0; j++; j<25){
-    strip.setPixelColor(j,strip.Color(Red,Blue,Green)); //Display a smiley face
+  
+  else if(xAna >= 250 || xAna <= 500) {
+    Red = 150;
+    Blue = 0; 
+    Green = 0;
+    Red1 = 131; //display different colors for different volume levels
+    Blue2 = 212; 
+    Green3 = 225;
+    
+   
   }
-
+  else if(xAna >= 500 || xAna <= 700) {
+    Red = 200;
+    Blue = 0;
+    Green = 0;
+    Red1 = 145; //arbitrary color
+    Blue2 = 225;
+    Green3 = 131;
+    
+   
+  }
+  else  if(xAna >= 950 || xAna <= 1023) {
+    Red = 255;
+    Blue = 0;
+    Green = 0;
+    Red1 = 220; //arbitrary color
+    Blue2 = 225;
+    Green3 = 131;
+   
+  }
+  else {
+    
+    Red = 50;
+    Blue = 0; 
+    Green = 0;
+    Red1 = 225; //arbitrary color
+    Blue2 = 131; 
+    Green3 = 159;
+  }
+ 
+  }
+  
+  else if (yAna > xAna && yAna > zAna){
+    
+      if(yAna < 300) {
+    Red = 0; //if the volume is low don't display an image
+    Blue = 100;
+    Green = 0;
+    Red1 = 0; //if the volume is low don't display an image
+    Blue2 = 0;
+    Green3 = 100;
+  }
+  
+  else if(yAna >= 250 || yAna <= 500) {
+    Red = 0;
+    Blue = 150; 
+    Green = 0;
+    Red1 = 131; //display different colors for different volume levels
+    Blue2 = 212; 
+    Green3 = 225;
+    
+   
+  }
+  else if(yAna >= 500 || yAna <= 700) {
+    Red = 0;
+    Blue = 200;
+    Green = 0;
+    Red1 = 145; //arbitrary color
+    Blue2 = 225;
+    Green3 = 131;
+    
+   
+  }
+  else  if(yAna >= 950 || yAna <= 1023) {
+    Red = 0;
+    Blue = 255;
+    Green = 0;
+    Red1 = 220; //arbitrary color
+    Blue2 = 225;
+    Green3 = 131;
+   
+  }
+  else {
+    
+    Red = 0;
+    Blue = 50; 
+    Green = 0;
+    Red1 = 225; //arbitrary color
+    Blue2 = 131; 
+    Green3 = 159;
+  }
+  }
+  else {
+    
+    if(zAna < 300) {
+    Red = 0; //if the volume is low don't display an image
+    Blue = 0;
+    Green = 100;
+    Red1 = 0; //if the volume is low don't display an image
+    Blue2 = 0;
+    Green3 = 0;
+  }
+  
+  else if(zAna >= 250 || zAna <= 500) {
+    Red = 0;
+    Blue = 0; 
+    Green = 150;
+    Red1 = 131; //display different colors for different volume levels
+    Blue2 = 212; 
+    Green3 = 225;
+    
+   
+  }
+  else if(zAna >= 500 || zAna <= 700) {
+    Red = 0;
+    Blue = 0;
+    Green = 150;
+    Red1 = 145; //arbitrary color
+    Blue2 = 225;
+    Green3 = 131;
+    
+   
+  }
+  else  if(zAna >= 950 || zAna <= 1023) {
+    Red = 0;
+    Blue = 0;
+    Green = 200;
+    Red1 = 220; //arbitrary color
+    Blue2 = 225;
+    Green3 = 131;
+   
+  }
+  else {
+    
+    Red = 0;
+    Blue = 0; 
+    Green = 255;
+    Red1 = 225; //arbitrary color
+    Blue2 = 131; 
+    Green3 = 159;
+  }
+  }
+    
+    
+  for(int i=0; i<64; i++) {   //set background color
+  strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
+  }
+  
+  
+  
+  for(int i = 0; i < 26; i++){
+    strip.setPixelColor(neoArray[i],strip.Color(Red,Blue,Green)); //Display a smiley face
+  }
+  
   strip.show();
+
   return;
-}
+  }
+
+
+
 
 //Start synth stuff
 long fixAngle(long Ang){
@@ -311,7 +474,7 @@ void updateSynth(){
     Serial.print(buttonState);
   #endif
 
-  if (buttonState == 1){
+  if (buttonState == 0 || TONEON){
     tone(SPEAKERPIN, notefreq);
   }
   else {
