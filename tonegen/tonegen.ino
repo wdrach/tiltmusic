@@ -251,20 +251,16 @@ void updateNeopixels(){
   unsigned int Blue2=0;
   unsigned int Green3=0;
   
-    Red = xAna/4;
-    Blue = yAna/4;
-    Green = zAna/4;
-    Red1 = 255 - Red; 
-    Blue2 = 255 - Blue;
-    Green3 = 255 - Green;
-
- 
+  Red = xAna/4;
+  Blue = yAna/4;
+  Green = zAna/4;
+  Red1 = 255 - Red; 
+  Blue2 = 255 - Blue;
+  Green3 = 255 - Green;
     
  for(int i=0;i < 64; i++) {   //set background color
   strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
   }
-  
-  
   
   for(int i = 0; i < 26; i++){
     strip.setPixelColor(neoArray[i],strip.Color(Red,Blue,Green)); //Display a smiley face
@@ -274,11 +270,6 @@ void updateNeopixels(){
 
   return;
 }
-
-
-
-
-
 
 //Start synth stuff
 long fixAngle(long Ang){
@@ -372,9 +363,9 @@ byte pentaDigit(int Ana){
   return pentaKill;
 }
 
-void playTone(unsigned int freq, unsigned char vol){
+void playTone(unsigned int freq, nsigned char vol){
     unsigned long bigfreq = freq*10^6;
-    unsigned int period = 1/freq;
+    unsigned int period = 2/freq;
     analogWrite(SPEAKERPIN, vol);
     delayMicroseconds(period);
     analogWrite(SPEAKERPIN, 0);
