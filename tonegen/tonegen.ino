@@ -128,7 +128,6 @@ const char itgAddress = 0x69;
 volatile unsigned int notefreq = 0;
 
 //pentatonic CDEGA C1->A6
-//remove in this order 1, 5, 4, 2
 const unsigned int pentatonic[] = {
       33,   37,   41,   49,   55, 
       65,  147,  165,  196,  220,
@@ -363,15 +362,6 @@ byte pentaDigit(int Ana){
   return pentaKill;
 }
 
-void playTone(unsigned int freq, unsigned char vol){
-    unsigned long bigfreq = freq*10^6;
-    unsigned int period = 2/freq;
-    analogWrite(SPEAKERPIN, vol);
-    delayMicroseconds(period);
-    analogWrite(SPEAKERPIN, 0);
-    delayMicroseconds(period);
-    return; 
-} 
 //end synth stuff
 
 //Start gyro functions
