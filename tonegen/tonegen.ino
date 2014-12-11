@@ -65,13 +65,11 @@
 
 //Debug options. When DEBUG is not commented out
 //it prints lots of info about whats going on to
-//the serial monitor. Setting ALWAYSON to true will
-//disable the power on switch. Uncommenting TONEON
+//the serial monitor. Uncommenting TONEON
 //will disable the button, and commenting out ENABLENEO
 //will turn off the grid.
 
 #define DEBUG true
-#define ALWAYSON false
 //#define TONEON true
 #define ENABLENEO true
 #define ZELDA true
@@ -88,6 +86,10 @@ const int neoArray[26] = {2,3,4,5,9,24,26,23,24,26,29,31,32,39,40,42,45,47,49,51
 //stuff for the button
 #define BUTPIN 2
 int buttonState = 0;
+int offButtonState = 0;
+boolean offPrevState = true;
+int mode = 0;
+int modes = 2;
 
 //switch
 #define SWPIN 3
@@ -229,7 +231,7 @@ void setup() {
 
 void loop() {
   lowPower = digitalRead(SWPIN);
-  if (lowPower == 1 || ALWAYSON){
+  if (lowPower == 1 && mode == 0){
     strip.setBrightness(100);
     //Get gyro reading
     if (bufferTime != 0){
@@ -294,10 +296,13 @@ void loop() {
       Serial.println("");
     #endif
   }
-  else{
+  else if (lowPower == 1 && mode == 1) {
     #ifdef ZELDA
       playZelda();
     #endif
+  }
+  else{
+    modeSet();
     strip.setBrightness(0);
     strip.show();
     noTone(SPEAKERPIN);
@@ -436,11 +441,17 @@ byte pentaDigit(int Ana){
 }
 
 void playZelda(){
+  int off = 0;
   for (int i = 0; i < zeldaLen; i++){
     tone(SPEAKERPIN, freqZelda[i]);
     delay(noteZelda[i] * 100);
     noTone(SPEAKERPIN);
+    off = digitalRead(SWPIN);
+    if (off == 1){
+      return;
+    }
   }
+  return;
 }
 
 //end synth stuff
@@ -518,6 +529,33 @@ int matrix(int x, int y){
   return result;
 }
 
+boolean toggleButton(){
+  buttonState = digitalRead(BUTPIN);
+  if (offPrevState && buttonState == 1){
+    offPrevState = true;
+    return true;
+  }
+  else if (buttonState = 1){
+    offPrevState = true;
+    return false;
+  }
+  else {
+    offPrevState = false;
+    return false;
+  }
+}
+
+void modeSet(){
+  boolean toggle = toggleButton();
+  if (toggle){
+    mode = mode + 1;
+  }
+  if (mode > (modes - 1)){
+    mode = 0;
+  }
+  Serial.println(mode);
+  return;
+}
 /* License Info:
    This is licensed under Beerware R42. There is some code from
    Sparkfun's ITG3200 example code in here, as well as the APC
