@@ -80,6 +80,7 @@
 
 //initialize Neopixels
 #define NEOPIN 5
+#define ONBRIGHT 100
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 const int neoArray[26] = {2,3,4,5,9,24,26,23,24,26,29,31,32,39,40,42,45,47,49,51,52,54,58,59,60,61};
 
@@ -232,7 +233,7 @@ void setup() {
 void loop() {
   lowPower = digitalRead(SWPIN);
   if (lowPower == 1 && mode == 0){
-    strip.setBrightness(100);
+    strip.setBrightness(ONBRIGHT);
     //Get gyro reading
     if (bufferTime != 0){
       //amount of ms since last poll
@@ -346,11 +347,11 @@ void updateNeopixels(){
 
 //Start synth stuff
 long fixAngle(long Ang){
-  while (Ang > 2800){
-    Ang = Ang - 5600;
+  while (Ang > 2400){
+    Ang = Ang - 4800;
   }
-  while (Ang < -2800){
-    Ang = Ang + 5600;
+  while (Ang < -2400){
+    Ang = Ang + 4800;
   }
   #ifdef DEBUG
     Serial.print(Ang);
@@ -363,14 +364,14 @@ long fixAngle(long Ang){
 long setAna(long Ang, boolean full){
   long Ana = 0;
   if (full){
-    Ana = Ang + 2800;
-    Ana = Ana*32L;
-    Ana = Ana/175L;
+    Ana = Ang + 2400;
+    Ana = Ana*16L;
+    Ana = Ana/75L;
   }
   else {
-    Ana = Ang + 1400;
-    Ana = Ana*64L;
-    Ana = Ana/175L;
+    Ana = Ang + 1200;
+    Ana = Ana*32L;
+    Ana = Ana/75L;
   }
   if (Ana < 0){
     Ana = 0;
@@ -440,19 +441,38 @@ byte pentaDigit(int Ana){
   return pentaKill;
 }
 
+#ifdef ZELDA
 void playZelda(){
-  int off = 0;
+  int on = 0;
   for (int i = 0; i < zeldaLen; i++){
+    strip.setBrightness(ONBRIGHT);
     tone(SPEAKERPIN, freqZelda[i]);
+    for(int j = 0; j < 64; j++){
+        if (freqZelda[i] > 512){
+            int Blue = freqZelda[i]/4;
+            int Red  = 128;
+            strip.setPixelColor(j,strip.Color(Red,Blue,0));
+        }
+        else if (freqZelda[i] < 1023){
+            int Red = (freqZelda[i] - 512 )/4;
+            int Blue = 128;
+            strip.setPixelColor(j,strip.Color(Red,Blue,0));
+        }
+        else{
+            strip.setPixelColor(j,strip.Color(256,0,0));
+        }
+    }
+    strip.show();
     delay(noteZelda[i] * 100);
     noTone(SPEAKERPIN);
-    off = digitalRead(SWPIN);
-    if (off == 1){
+    on = digitalRead(SWPIN);
+    if (on == 0){
       return;
     }
   }
   return;
 }
+#endif
 
 //end synth stuff
 
@@ -531,11 +551,11 @@ int matrix(int x, int y){
 
 boolean toggleButton(){
   buttonState = digitalRead(BUTPIN);
-  if (offPrevState && buttonState == 1){
+  if (!offPrevState && buttonState == 0){
     offPrevState = true;
     return true;
   }
-  else if (buttonState = 1){
+  else if (buttonState == 0){
     offPrevState = true;
     return false;
   }
