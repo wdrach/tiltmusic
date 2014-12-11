@@ -74,6 +74,7 @@
 #define ALWAYSON false
 //#define TONEON true
 #define ENABLENEO true
+#define ZELDA true
 
 //libraries
 #include <Adafruit_NeoPixel.h>
@@ -154,6 +155,57 @@ const int pentind[] = {
     36, 38, 40, 43, 45,
     48, 50, 52, 55, 57
 };
+
+#ifdef ZELDA
+  const int noteZelda[] = {8, 2, 2, 2, 2,
+                           1, 1, 14,
+                           8, 2, 2, 2, 2,
+                           1, 1, 14,
+                           4, 4, 2, 2, 1, 1, 1, 1,
+                           8, 2, 2, 1, 1, 2,
+                           8, 2, 2, 1, 1, 2,
+                           3, 1, 8, 4,
+                           3, 1, 4, 4, 2, 2,
+                           3, 1, 4, 4, 2, 2,
+                           3, 1, 8, 4,
+                           2, 1, 1, 2, 1, 1, 2, 1, 1, 2, 2,
+                           4, 4, 2, 2, 1, 1, 1, 1,
+                           8, 2, 2, 1, 1, 2,
+                           12, 4,
+                           4, 8, 4,
+                           12, 4,
+                           4, 8, 4,
+                           12, 4,
+                           4, 8, 4,
+                           12, 4,
+                           4, 8, 4,
+                           3, 1, 8, 4,
+                           2, 1, 1, 2, 1, 1, 2, 1, 1, 2, 2};
+  int zeldaLen = 115;
+  const int freqZelda[] = {466, 466, 349, 349, 466,
+                           415, 370, 415,
+                           466, 466, 349, 349, 466,
+                           440, 392, 415,
+                           466, 349, 349, 466, 466, 523, 597, 622,
+                           698, 698, 698, 698, 740, 831,
+                           932, 932, 932, 932, 831, 740,
+                           831, 740, 698, 698,
+                           622, 698, 740, 740, 698, 622,
+                           554, 622, 698, 698, 622, 554,
+                           523, 597, 659, 784,
+                           698, 349, 349, 349, 349, 349, 349, 349, 349, 349, 349,
+                           466, 349, 349, 466, 466, 523, 597, 622,
+                           698, 698, 698, 698, 740, 831,
+                           932, 1109, 1047, 880, 698,
+                           740, 932,
+                           880, 698, 698,
+                           740, 932,
+                           880, 698, 597,
+                           622, 740,
+                           698, 554, 466,
+                           523, 597, 659, 740,
+                           698, 349, 349, 349, 349, 349, 349, 349, 349, 349, 349};
+#endif
 
 void setup() {
   //initialize the neopixels
@@ -243,6 +295,9 @@ void loop() {
     #endif
   }
   else{
+    #ifdef ZELDA
+      playZelda();
+    #endif
     strip.setBrightness(0);
     strip.show();
     noTone(SPEAKERPIN);
@@ -378,6 +433,14 @@ byte pentaDigit(int Ana){
   }
   byte pentaKill = PD;
   return pentaKill;
+}
+
+void playZelda(){
+  for (int i = 0; i < zeldaLen; i++){
+    tone(SPEAKERPIN, freqZelda[i]);
+    delay(noteZelda[i] * 100);
+    noTone(SPEAKERPIN);
+  }
 }
 
 //end synth stuff
