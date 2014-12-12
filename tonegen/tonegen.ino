@@ -632,7 +632,7 @@ void modeSet(){
   }
 
   boolean collision(){
-    if (prevPixel[location + 8] == 1){
+    if (prevPixel[location] == 1){
       return true;
     }
     else{
@@ -675,11 +675,18 @@ void modeSet(){
 
   void dead(){
     int resetButton = 0;
+    neoGame();
+    strip.setPixelColor((location + 8), strip.Color(255,0,0));
+    strip.show();
     while(true){
       resetButton = digitalRead(BUTPIN);
       if (resetButton == 1){
         return;
       }
+      int on = digitalRead(SWPIN);  
+      if (on == 0){
+        return;
+    }
     }
   }
 
@@ -720,7 +727,7 @@ void modeSet(){
         strip.setPixelColor(i, strip.Color(0, 0, 0));
       }
     }
-    strip.setPixelColor(location, strip.Color(0, 0, 255));
+    strip.setPixelColor((location + 8), strip.Color(0, 0, 255));
     strip.show();
     return;
   }
