@@ -76,18 +76,23 @@
 #define GAME true
 
 //libraries
-#include <Adafruit_NeoPixel.h>
-#include <Wire.h>
+#include <Adafruit_NeoPixel.h> //Neopixel lib
+#include <Wire.h>              //Arduino I2C lib
 
 //initialize Neopixels
-#define NEOPIN 5
+#define NEOPIN   5
 #define ONBRIGHT 50
+
+//init strip object
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
-const int neoArray[26] = {2,3,4,5,9,24,26,23,24,26,29,31,32,39,40,42,45,47,49,51,52,54,58,59,60,61};
 
 //stuff for the button
 #define BUTPIN 2
+
+//What position is the button in?
 int buttonState = 0;
+
+//Mode switch stuff
 int offButtonState = 0;
 boolean offPrevState = true;
 int mode = 0;
@@ -95,8 +100,11 @@ const int modes = 3;
 
 //switch
 #define SWPIN 3
+
+//lowpower is 0 when it is in low power mode
 int lowPower = 0;
 
+//gyro stuff
 //buffer for the millis of the last gyro reading
 unsigned long bufferTime = 0;
 unsigned long currTime = 0;
@@ -107,12 +115,12 @@ long xAng = 0;
 long yAng = 0;
 long zAng = 0;
 
-//angles in 0-1024
+//angles in 0-1023
 long xAna = 500;
 long yAna = 500;
 long zAna = 500;
 
-//Start gyro defines
+//Start gyro defines/addrs
 const char SMPLRT_DIV= 0x15;
 const char DLPF_FS = 0x16;
 const char GYRO_XOUT_H = 0x1D;
@@ -161,6 +169,9 @@ const int pentind[] = {
 };
 
 #ifdef ZELDA
+  //how long our note lists are
+  int zeldaLen = 115;
+  //note lengths of the song, 1 is a 16th note
   const int noteZelda[] = {8, 2, 2, 2, 2,
                            1, 1, 14,
                            8, 2, 2, 2, 2,
@@ -185,7 +196,7 @@ const int pentind[] = {
                            4, 8, 4,
                            3, 1, 8, 4,
                            2, 1, 1, 2, 1, 1, 2, 1, 1, 2, 2};
-  int zeldaLen = 115;
+  //frequencies of the above notes
   const int freqZelda[] = {466, 466, 349, 349, 466,
                            415, 370, 415,
                            466, 466, 349, 349, 466,
@@ -212,6 +223,7 @@ const int pentind[] = {
 #endif
 
 #ifdef GAME
+  //array that shows the current path
   byte pixel[] = {
   1, 0, 0, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
@@ -223,6 +235,7 @@ const int pentind[] = {
   1, 0, 0, 0, 0, 0, 0, 1
   };
 
+  //the previous path
   byte prevPixel[] = {
   0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0,
@@ -234,16 +247,21 @@ const int pentind[] = {
   0, 0, 0, 0, 0, 0, 0, 0
   };
 
+  //indices of the edges for reset
   byte capn[] = {
     0, 7, 8, 15, 16, 23, 24,
     31, 32, 39, 40, 47, 48,
     55, 56, 63
   };
 
+  //difficulty and up rate clock
   byte diff = 0;
   byte count = 0;
 
+  //location of the player
   byte location = 4;
+
+  //are ya dead?
   boolean bad = false;
 #endif
 
@@ -258,20 +276,30 @@ void setup() {
   itgWrite(itgAddress, DLPF_FS, (DLPF_FS_SEL_0|DLPF_FS_SEL_1|DLPF_CFG_0));
   //100hz sample rate
   itgWrite(itgAddress, SMPLRT_DIV, 9);
+
+  //start debug monitor if needed
   #ifdef DEBUG
     Serial.begin(9600);
   #endif
-  //set button/audio to input
+
+  //set button/switch to input
   pinMode(BUTPIN, INPUT);
   pinMode(SWPIN, INPUT);
+
+  //set speaker to output
+  pinMode(SPEAKERPIN, OUTPUT);
 }
 
 
 void loop() {
+  //are we off or on?
   lowPower = digitalRead(SWPIN);
   if (lowPower == 1 && mode == 0){
+    //mode 0 is main functionality
     strip.setBrightness(ONBRIGHT);
+
     //Get gyro reading
+    //TODO: pack this in a library
     if (bufferTime != 0){
       //amount of ms since last poll
       currTime = millis();
@@ -330,66 +358,94 @@ void loop() {
     #ifdef ENABLENEO
       updateNeopixels(notefreq);
     #endif
+
+    //println to serial to end the current debug line
     #ifdef DEBUG
       Serial.println("");
     #endif
   }
   else if (lowPower == 1 && mode == 1) {
+    //if mode is 1 and we compiled ZELDA, play it
     #ifdef ZELDA
       playZelda();
     #endif
   }
   else if (lowPower == 1 && mode == 2) {
+    //if mode is 2 and we compiled GAME, play it
     #ifdef GAME
       playGame();
     #endif
   }
   else{
+    //check for a new mode
     modeSet();
+
+    //make sure strip is off
     strip.setBrightness(0);
     strip.show();
+
+    //make sure tone is off
     noTone(SPEAKERPIN);
+
+    //reset angles
     xAng = 0;
     yAng = 0;
     zAng = 0;
+
+    //more resetting
     xAna = 512;
     yAna = 512;
     zAna = 512;
+
+    //reset buffer time to force a refresh on power-on
     bufferTime == 0;
   }
 }
 
 void updateNeopixels(int freq){
+  //make color
+  //TODO: Color schemes?
   int color = 0;
 
-    for(int j = 0; j < 64; j++){
-        if (freq < 512){
-            color = notefreq/2;
-            strip.setPixelColor(j,strip.Color(128,0,color));
-        }
-        else if (freq < 1023){
-            color = (freq - 512)/2;
-            strip.setPixelColor(j,strip.Color(color,0,128));
-        }
-        else{
-            color = (freq - 1023)/2;
-            if (color > 255){
-              color = 255;
-            }
-            strip.setPixelColor(j,strip.Color(128,color,0));
-        }
+  for(int j = 0; j < 64; j++){
+    if (freq < 512){
+      //if small, assign and go to town
+      color = notefreq/2;
+      strip.setPixelColor(j,strip.Color(128,0,color));
     }
+    else if (freq < 1023){
+      //if larger, assign slightly differently
+      color = (freq - 512)/2;
+      strip.setPixelColor(j,strip.Color(color,0,128));
+    }
+    else{
+      //throw a green in there if it's really big...
+      color = (freq - 1023)/2;
+      if (color > 255){
+        color = 255;
+      }
+      strip.setPixelColor(j,strip.Color(128,color,0));
+    }
+  }
   strip.show();
 }
 
 //Start synth stuff
 long fixAngle(long Ang){
+  //simple conversion that says
+  //"if the angle > 180 deg, set it to -180 deg
+  //else if angle <  -180 deg, set it to 180 deg"
+
+  //These are while loops just in case the angle
+  //is really bad
   while (Ang > 2400){
     Ang = Ang - 4800;
   }
   while (Ang < -2400){
     Ang = Ang + 4800;
   }
+
+  //print ang to debug console and return
   #ifdef DEBUG
     Serial.print(Ang);
     Serial.print("|");
@@ -400,6 +456,8 @@ long fixAngle(long Ang){
 
 long setAna(long Ang, boolean full){
   long Ana = 0;
+
+  //simple math to convert and double check
   if (full){
     Ana = Ang + 2400;
     Ana = Ana*16L;
@@ -421,9 +479,15 @@ long setAna(long Ang, boolean full){
 }
 
 void updateSynth(){
+  //find the initial note
   int noteind = pentaDigit(zAna);
+  
+  //find where that note is on the index
   noteind  = pentind[noteind];
+
+  //modify it accordingly
   noteind  = noteind - ((xAna/128) - 4);
+
   //even it out
   if (noteind < 0){
     noteind = 0;
@@ -431,9 +495,13 @@ void updateSynth(){
   if (noteind > 60){
     noteind = 60;
   }
+  //set initial frequency
   notefreq = notes[noteind];
+
+  //fine tune frequency
   notefreq = notefreq + ((yAna - 512)/4);
 
+  //read the button
   buttonState = digitalRead(BUTPIN);
   #ifdef DEBUG
     Serial.print(notefreq);
@@ -441,25 +509,26 @@ void updateSynth(){
     Serial.print(buttonState);
   #endif
 
+  //modify the freq to reduce helicoptering
   if (notefreq < 36){
       notefreq = 36;
   }
+  //unsigned int leads to problems when the fine-tune
+  //causes it to go below zero.
   else if (notefreq > 4000){
-    notefreq = 4000;
+    notefreq = 36;
   }
 
+  //if the button is on, play it
   if (buttonState == 1){
     tone(SPEAKERPIN, notefreq);
-    //play tone
   }
+  //if the button is off, make sure the tone is too
   else {
     noTone(SPEAKERPIN);
   }
 
-  if (notefreq < 31){
-      notefreq = 31;
-  }
-
+  //if the TONEON flag is set, play it either way
   #ifdef TONEON
     tone(SPEAKERPIN, notefreq);
   #endif
@@ -468,6 +537,8 @@ void updateSynth(){
 }
 
 byte pentaDigit(int Ana){
+  //takes an Ana value and changes it
+  //to an index in our pentatonic array
   int PD;
   PD = Ana/41;
   PD = PD + 1;
@@ -484,12 +555,21 @@ byte pentaDigit(int Ana){
 #ifdef ZELDA
 void playZelda(){
   int on = 0;
+  strip.setBrightness(ONBRIGHT);
   for (int i = 0; i < zeldaLen; i++){
-    strip.setBrightness(ONBRIGHT);
+    //play the correct tone
     tone(SPEAKERPIN, freqZelda[i]);
+
+    //update the grid
     updateNeopixels(freqZelda[i]);
+
+    //delay the correct amount
     delay(noteZelda[i] * 100);
+
+    //done
     noTone(SPEAKERPIN);
+
+    //if the switch is off, kill it
     on = digitalRead(SWPIN);
     if (on == 0){
       return;
@@ -502,79 +582,85 @@ void playZelda(){
 //end synth stuff
 
 //Start gyro functions
-//This function will write a value to a register on the itg-3200.
-//Parameters:
-// char address: The I2C address of the sensor. For the ITG-3200 breakout the address is 0x69.
-// char registerAddress: The address of the register on the sensor that should be written to.
-// char data: The value to be written to the specified register.
+
+//sparkfun provided I2C communication function
 void itgWrite(char address, char registerAddress, char data)
 {
-//Initiate a communication sequence with the desired i2c device
-Wire.beginTransmission(address);
-//Tell the I2C address which register we are writing to
-Wire.write(registerAddress);
-//Send the value to write to the specified register
-Wire.write(data);
-//End the communication sequence
-Wire.endTransmission();
+  //Initiate a communication sequence with the desired i2c device
+  Wire.beginTransmission(address);
+  //Tell the I2C address which register we are writing to
+  Wire.write(registerAddress);
+  //Send the value to write to the specified register
+  Wire.write(data);
+  //End the communication sequence
+  Wire.endTransmission();
 }
 
-//This function will read the data from a specified register on the ITG-3200 and return the value.
-//Parameters:
-// char address: The I2C address of the sensor. For the ITG-3200 breakout the address is 0x69.
-// char registerAddress: The address of the register on the sensor that should be read
-//Return:
-// unsigned char: The value currently residing in the specified register
+//another sparkfun communication function
 unsigned char itgRead(char address, char registerAddress)
 {
-//This variable will hold the contents read from the i2c device.
-unsigned char data=0;
-//Send the register address to be read.
-Wire.beginTransmission(address);
-//Send the Register Address
-Wire.write(registerAddress);
-//End the communication sequence.
-Wire.endTransmission();
-//Ask the I2C device for data
-Wire.beginTransmission(address);
-Wire.requestFrom(address, 1);
-//Wait for a response from the I2C device
-if(Wire.available()){
-//Save the data sent from the I2C device
-data = Wire.read();
-}
-//End the communication sequence.
-Wire.endTransmission();
-//Return the data read during the operation
-return data;
+  //This variable will hold the contents read from the i2c device.
+  unsigned char data=0;
+  //Send the register address to be read.
+  Wire.beginTransmission(address);
+  //Send the Register Address
+  Wire.write(registerAddress);
+  //End the communication sequence.
+  Wire.endTransmission();
+  //Ask the I2C device for data
+  Wire.beginTransmission(address);
+  Wire.requestFrom(address, 1);
+  //Wait for a response from the I2C device
+  if(Wire.available()){
+    //Save the data sent from the I2C device
+    data = Wire.read();
+  }
+  //End the communication sequence.
+  Wire.endTransmission();
+  //Return the data read during the operation
+  return data;
 }
 
+//the big function to modify our angle
 long angle(char addrA, char addrB, char offset, long oldAng){
+
+  //turn to a helper function to read the rate
   int rate = read(addrA, addrB, offset);
   #ifdef DEBUG
     Serial.print(rate);
   #endif
+
+  //up our old ang to make math more accurate
   oldAng = oldAng * 1000L;
+
+  //multiply rate * time and add
   long ang = oldAng + (rate*totTime);
+
+  //scale back down
   ang = ang/1000L;
   return ang;
 }
 
 int read(char addrA, char addrB, char offset)
 {
-int data=0;
-data = itgRead(itgAddress, addrA)<<8;
-data |= itgRead(itgAddress, addrB);
-data += offset;
-return data;
+  //use itgRead to get our rate from the two addrs
+  int data=0;
+  data = itgRead(itgAddress, addrA)<<8;
+  data |= itgRead(itgAddress, addrB);
+
+  //compensate for drift
+  data += offset;
+  return data;
 }
 
 int matrix(int x, int y){
+  //helper 
   int result = (56 - y*8) + x;
   return result;
 }
 
 boolean toggleButton(){
+  //turn a momentary button into a toggle button
   buttonState = digitalRead(BUTPIN);
   if (!offPrevState && buttonState == 0){
     offPrevState = true;
@@ -591,6 +677,7 @@ boolean toggleButton(){
 }
 
 void modeSet(){
+  //set the mode using the toggle function
   boolean toggle = toggleButton();
   if (toggle){
     mode = mode + 1;
@@ -598,7 +685,10 @@ void modeSet(){
   if (mode > (modes - 1)){
     mode = 0;
   }
-  Serial.println(mode);
+
+  #ifdef DEBUG
+    Serial.println(mode);
+  #endif
   return;
 }
 
@@ -733,7 +823,7 @@ void modeSet(){
   }
 #endif
 /* License Info:
-   This is licensed under Beerware R42. There is some code from
-   Sparkfun's ITG3200 example code in here, as well as the APC
-   code from Beavis Audio Research
+   This is licensed under Beerware R42.
+   Stuff from Sparkfun's Gyro example code is here
+   it is labeled accordingly
 */
