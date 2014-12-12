@@ -73,6 +73,7 @@
 //#define TONEON true
 #define ENABLENEO true
 #define ZELDA true
+#define GAME true
 
 //libraries
 #include <Adafruit_NeoPixel.h>
@@ -80,7 +81,7 @@
 
 //initialize Neopixels
 #define NEOPIN 5
-#define ONBRIGHT 100
+#define ONBRIGHT 50
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(64, NEOPIN, NEO_GRB + NEO_KHZ800);
 const int neoArray[26] = {2,3,4,5,9,24,26,23,24,26,29,31,32,39,40,42,45,47,49,51,52,54,58,59,60,61};
 
@@ -90,7 +91,7 @@ int buttonState = 0;
 int offButtonState = 0;
 boolean offPrevState = true;
 int mode = 0;
-int modes = 2;
+const int modes = 3;
 
 //switch
 #define SWPIN 3
@@ -210,6 +211,42 @@ const int pentind[] = {
                            698, 349, 349, 349, 349, 349, 349, 349, 349, 349, 349};
 #endif
 
+#ifdef GAME
+  byte pixel[] = {
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1
+  };
+
+  byte prevPixel[] = {
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0
+  };
+
+  byte capn[] = {
+    0, 7, 8, 15, 16, 23, 24,
+    31, 32, 39, 40, 47, 48,
+    55, 56, 63
+  };
+
+  byte diff = 0;
+  byte count = 0;
+
+  byte location = 4;
+  boolean bad = false;
+#endif
+
 void setup() {
   //initialize the neopixels
   strip.begin();
@@ -291,7 +328,7 @@ void loop() {
 
     //update the neopixel grid
     #ifdef ENABLENEO
-      updateNeopixels();
+      updateNeopixels(notefreq);
     #endif
     #ifdef DEBUG
       Serial.println("");
@@ -300,6 +337,11 @@ void loop() {
   else if (lowPower == 1 && mode == 1) {
     #ifdef ZELDA
       playZelda();
+    #endif
+  }
+  else if (lowPower == 1 && mode == 2) {
+    #ifdef GAME
+      playGame();
     #endif
   }
   else{
@@ -313,36 +355,31 @@ void loop() {
     xAna = 512;
     yAna = 512;
     zAna = 512;
+    bufferTime == 0;
   }
 }
 
-void updateNeopixels(){
+void updateNeopixels(int freq){
+  int color = 0;
 
-  unsigned int Red=0; 
-  unsigned int Blue=0;
-  unsigned int Green=0;
-  unsigned int Red1=0;
-  unsigned int Blue2=0;
-  unsigned int Green3=0;
-  
-  Red = xAna/4;
-  Blue = zAna/4;
-  //Green = yAna/4;
-  //Red1 = 255 - Red; 
-  //Blue2 = 255 - Blue;
-  //Green3 = 255 - Green;
-    
- for(int i=0;i < 64; i++) {   //set background color
-  strip.setPixelColor(i,strip.Color(Red1,Blue2,Green3));
-  }
-  
-  for(int i = 0; i < 26; i++){
-    strip.setPixelColor(neoArray[i],strip.Color(Red,Blue,Green)); //Display a smiley face
-  }
-  
+    for(int j = 0; j < 64; j++){
+        if (freq < 512){
+            color = notefreq/2;
+            strip.setPixelColor(j,strip.Color(128,0,color));
+        }
+        else if (freq < 1023){
+            color = (freq - 512)/2;
+            strip.setPixelColor(j,strip.Color(color,0,128));
+        }
+        else{
+            color = (freq - 1023)/2;
+            if (color > 255){
+              color = 255;
+            }
+            strip.setPixelColor(j,strip.Color(128,color,0));
+        }
+    }
   strip.show();
-
-  return;
 }
 
 //Start synth stuff
@@ -407,6 +444,9 @@ void updateSynth(){
   if (notefreq < 36){
       notefreq = 36;
   }
+  else if (notefreq > 4000){
+    notefreq = 4000;
+  }
 
   if (buttonState == 1){
     tone(SPEAKERPIN, notefreq);
@@ -447,22 +487,7 @@ void playZelda(){
   for (int i = 0; i < zeldaLen; i++){
     strip.setBrightness(ONBRIGHT);
     tone(SPEAKERPIN, freqZelda[i]);
-    for(int j = 0; j < 64; j++){
-        if (freqZelda[i] > 512){
-            int Blue = freqZelda[i]/4;
-            int Red  = 128;
-            strip.setPixelColor(j,strip.Color(Red,Blue,0));
-        }
-        else if (freqZelda[i] < 1023){
-            int Red = (freqZelda[i] - 512 )/4;
-            int Blue = 128;
-            strip.setPixelColor(j,strip.Color(Red,Blue,0));
-        }
-        else{
-            strip.setPixelColor(j,strip.Color(256,0,0));
-        }
-    }
-    strip.show();
+    updateNeopixels(freqZelda[i]);
     delay(noteZelda[i] * 100);
     noTone(SPEAKERPIN);
     on = digitalRead(SWPIN);
@@ -576,6 +601,130 @@ void modeSet(){
   Serial.println(mode);
   return;
 }
+
+//game stuff
+#ifdef GAME
+  void playGame(){
+    location = update();
+    physics();
+    if (collision()){
+      dead();
+      reset();
+    }
+    path();
+    neoGame();
+    int on = digitalRead(SWPIN);  
+    if (on == 0){
+      return;
+    }
+    delay(100);
+  }
+
+  void physics(){
+    //drop one pixel
+    for (int i = 0; i < 64; i++){
+      prevPixel[i] = pixel[i];
+    }
+    for (int i = 8; i < 64; i++){
+      pixel[i] = pixel[i - 8];
+    }
+    return;
+  }
+
+  boolean collision(){
+    if (prevPixel[location + 8] == 1){
+      return true;
+    }
+    else{
+      return false;
+    }
+  }
+
+  int update(){
+    if (bufferTime != 0){
+      //amount of ms since last poll
+      currTime = millis();
+      totTime = currTime - bufferTime;
+      yAng = angle(GYRO_YOUT_H, GYRO_YOUT_L, -12, yAng);
+
+      //set bufferTime
+      bufferTime = currTime;
+    }
+    else{
+      bufferTime = millis();
+    }
+
+    yAng = fixAngle(yAng);
+    yAna = setAna(yAng, false);
+    //right = Y+
+    //left  = Y-
+    int y = yAna;
+    if (y < 256){
+      y = 256;
+    }
+    else if (y > 768){
+      y = 768;
+    }
+    y = y - 256;
+
+    //512
+    int pos = y/64;
+    Serial.println(pos);
+    return pos;
+  }
+
+  void dead(){
+    int resetButton = 0;
+    while(true){
+      resetButton = digitalRead(BUTPIN);
+      if (resetButton == 1){
+        return;
+      }
+    }
+  }
+
+  void reset(){
+    location = 4;
+    xAng = 0;
+    for (int i = 0; i < 64; i++){
+      pixel[i] == 0;
+    }
+    for (int i = 0; i < 16; i++){
+      pixel[capn[i]] = 1;
+    }
+    return;
+  }
+
+  void path(){
+    int random = analogRead(A0);
+
+    if (diff == 0){
+      int passArray[8] = {1, 0, 0, 0, 0, 0, 0, 1};
+      insert(passArray);
+    }
+  }
+
+  void insert(int insArray[8]){
+    for (int i = 0; i < 8; i++){
+      pixel[i] = insArray[i];
+    }
+  }
+
+  void neoGame(){
+    strip.setBrightness(ONBRIGHT);
+    for (int i = 0; i < 64; i++){
+      if (pixel[i] == 1){
+        strip.setPixelColor(i, strip.Color(0, 255, 0));
+      }
+      else{
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+    }
+    strip.setPixelColor(location, strip.Color(0, 0, 255));
+    strip.show();
+    return;
+  }
+#endif
 /* License Info:
    This is licensed under Beerware R42. There is some code from
    Sparkfun's ITG3200 example code in here, as well as the APC
