@@ -139,6 +139,9 @@ const char itgAddress = 0x69;
 //synth vars
 #define SPEAKERPIN 11
 volatile unsigned int notefreq = 0;
+volatile unsigned int prevFreq = 0;
+volatile boolean change = false;
+volatile boolean prevButton = false;
 
 //pentatonic CDEGA C1->A6
 const unsigned int pentatonic[] = {
@@ -256,7 +259,10 @@ const int pentind[] = {
 
   //difficulty and up rate clock
   byte diff = 0;
-  byte count = 0;
+  byte count = 20;
+
+  int updateDelay = 500;
+  int playerDelay = 100;
 
   //location of the player
   byte location = 4;
@@ -288,6 +294,11 @@ void setup() {
 
   //set speaker to output
   pinMode(SPEAKERPIN, OUTPUT);
+
+  #ifdef GAME
+    //init random seed to an unused analog pin
+    randomSeed(analogRead(0));
+  #endif
 }
 
 
@@ -373,6 +384,7 @@ void loop() {
   else if (lowPower == 1 && mode == 2) {
     //if mode is 2 and we compiled GAME, play it
     #ifdef GAME
+      reset();
       playGame();
     #endif
   }
@@ -396,6 +408,9 @@ void loop() {
     xAna = 512;
     yAna = 512;
     zAna = 512;
+
+    //reset freq
+    notefreq = 0;
 
     //reset buffer time to force a refresh on power-on
     bufferTime == 0;
@@ -481,6 +496,7 @@ long setAna(long Ang, boolean full){
 void updateSynth(){
   //find the initial note
   int noteind = pentaDigit(zAna);
+  prevFreq = notefreq;
   
   //find where that note is on the index
   noteind  = pentind[noteind];
@@ -503,11 +519,6 @@ void updateSynth(){
 
   //read the button
   buttonState = digitalRead(BUTPIN);
-  #ifdef DEBUG
-    Serial.print(notefreq);
-    Serial.print("|");
-    Serial.print(buttonState);
-  #endif
 
   //modify the freq to reduce helicoptering
   if (notefreq < 36){
@@ -519,13 +530,23 @@ void updateSynth(){
     notefreq = 36;
   }
 
+  #ifdef DEBUG
+    Serial.print(notefreq);
+    Serial.print("|");
+    Serial.print(buttonState);
+  #endif
+
   //if the button is on, play it
   if (buttonState == 1){
-    tone(SPEAKERPIN, notefreq);
+    if (prevFreq != notefreq || !prevButton){
+      tone(SPEAKERPIN, notefreq);
+      }
+    prevButton = true;
   }
   //if the button is off, make sure the tone is too
   else {
     noTone(SPEAKERPIN);
+    prevButton = false;
   }
 
   //if the TONEON flag is set, play it either way
@@ -695,13 +716,18 @@ void modeSet(){
 //game stuff
 #ifdef GAME
   void playGame(){
+    static int updateCount = 0;
     location = update();
+    updateCount +=1;
     physics();
     if (collision()){
-      dead();
       reset();
     }
-    path();
+    if (updateCount == 5){
+        updateCount = 0;
+        diffup();
+        path();}
+
     neoGame();
     int on = digitalRead(SWPIN);  
     if (on == 0){
@@ -709,14 +735,34 @@ void modeSet(){
     }
     delay(100);
   }
+  
+  void diffup(){
+      count -= 1;
+      if (count == 0){
+          diff += 1;
+          if (diff < 5){
+            for (int i = 54; i < 64; i++){
+                if (prevPixel[i] == 0){
+                    prevPixel[i] == 1;
+                    count = random(1,40);
+                    return;
+                }
+            }
+          }
+          else {
+              updateDelay = 500 - diff;
+          }
+      return;
+    }
+  }
 
   void physics(){
     //drop one pixel
     for (int i = 0; i < 64; i++){
       prevPixel[i] = pixel[i];
     }
-    for (int i = 8; i < 64; i++){
-      pixel[i] = pixel[i - 8];
+    for (int i = 0; i < 54; i++){
+      pixel[i] = pixel[i + 8];
     }
     return;
   }
@@ -765,6 +811,7 @@ void modeSet(){
 
   void dead(){
     int resetButton = 0;
+    reset();
     neoGame();
     strip.setPixelColor((location + 8), strip.Color(255,0,0));
     strip.show();
@@ -783,26 +830,65 @@ void modeSet(){
   void reset(){
     location = 4;
     xAng = 0;
+    xAna = 0;
     for (int i = 0; i < 64; i++){
       pixel[i] == 0;
     }
     for (int i = 0; i < 16; i++){
       pixel[capn[i]] = 1;
     }
+    for (int i = 0; i < 64; i++){
+        prevPixel[i] = pixel[i];
+    }
+    diff = 0;
+    count = 20;
     return;
   }
 
   void path(){
-    int random = analogRead(A0);
-
-    if (diff == 0){
-      int passArray[8] = {1, 0, 0, 0, 0, 0, 0, 1};
-      insert(passArray);
+    int rand = random(1,10);
+    int prevPath[8] = {prevPixel[56], prevPixel[57], prevPixel[58], prevPixel[59], prevPixel[60], prevPixel[61], prevPixel[62], prevPixel[63]};
+    int path[8];
+    int buffer[8];
+    for (int i = 0; i < 8; i++){
+        buffer[i] = prevPath[i];
     }
+    if (rand < 4){
+        if (prevPath[1] == 0){
+            for (int i = 0; i < 8; i++){
+              path[i] = prevPath[i];
+            }
+        }
+        else{
+          for(int i = 1; i < 7; i++){
+              path[i] = buffer[i - 1];
+          }
+            path[0] = 1;
+        }
+    }
+    else if (rand > 6){
+        if (prevPath[6] == 0){
+            for (int i = 0; i < 8; i++){
+              path[i] = prevPath[i];
+            }
+        }
+        else{
+            for(int i = 0; i < 6; i++){
+                path[i] = buffer[i + 1];
+            }
+            path[7] = 1;
+        }
+    }
+    insert(path);
+    for (int i = 0; i < 8; i++){
+      Serial.print(path[i]);
+    }
+    Serial.println("");
   }
 
+
   void insert(int insArray[8]){
-    for (int i = 0; i < 8; i++){
+    for (int i = 56; i < 64; i++){
       pixel[i] = insArray[i];
     }
   }
@@ -814,7 +900,7 @@ void modeSet(){
         strip.setPixelColor(i, strip.Color(0, 255, 0));
       }
       else{
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
+        strip.setPixelColor(i, strip.Color(255, 255, 255));
       }
     }
     strip.setPixelColor((location + 8), strip.Color(0, 0, 255));
