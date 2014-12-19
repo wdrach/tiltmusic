@@ -462,8 +462,8 @@ long fixAngle(long Ang){
 
   //print ang to debug console and return
   #ifdef DEBUG
-    Serial.print(Ang);
-    Serial.print("|");
+    //Serial.print(Ang);
+    //Serial.print("|");
   #endif
 
   return Ang;
@@ -489,7 +489,10 @@ long setAna(long Ang, boolean full){
   if (Ana > 1023){
     Ana = 1023;
   }
-
+  #ifdef DEBUG
+    Serial.print(Ana);
+    Serial.print("|");
+  #endif
   return Ana;
 }
 
